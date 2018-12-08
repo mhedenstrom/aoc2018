@@ -1,48 +1,68 @@
-
 # format: [ header [subtree] metadata ]
-data = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2"
 data = open("data.txt", "r").read()
-tree = [
+# data = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2"
+data = [
     int(s)
     for s in data.split(' ')
 ]
 
 
-# traverse the tree and collect all metadata
-def get_metadata(node):
-    (metadata, children) = node
-
-    for child in children:
-        metadata.extend(get_metadata(child))
-
-    return metadata
-
-
-# parse data into a tree: (node, children)
-def get_node(nodes):
+def parse(data):
 
     # header
-    (child_count, meta_count) = nodes[:2]
-    nodes = nodes[2:]
+    (child_count, metadata_count) = data[:2]
+    data = data[2:]
 
     # recursively get children
     children = []
     for c in range(child_count):
-        (one_child, nodes) = get_node(nodes)
-        children.append(one_child)
+        (child, data) = parse(data)
+        children.append(child)
 
     # return this node and remaining data
-    (metadata, remainder) = nodes[:meta_count], nodes[meta_count:]
+    (metadata, data) = data[:metadata_count], data[metadata_count:]
     return (
         (metadata, children), # node
-        remainder
+        data
     )
 
-# parse tree
-(root_node, remainder) = get_node(tree)
-if len(remainder) > 0:
-    # should not remain anything from the original data
-    print("error")
 
-# print(root_node)
-print(sum(get_metadata(root_node)))
+def get_metadata_sum(node):
+    (metadata, children) = node
+
+    return sum(metadata) + sum([
+        get_metadata_sum(child)
+        for child in children
+    ])
+
+
+def get_node_value(node):
+    (meta, children) = node
+
+    if (len(children) == 0):
+        return sum(meta)
+
+    child_indexes = [
+        i - 1
+        for i in meta
+        if i > 0 and i - 1 < len(children)
+    ]
+
+    cache = {}
+    for k in list(set(child_indexes)):
+        cache[k] = get_node_value(children[k])
+
+    return sum([
+        cache[k]
+        for k in child_indexes
+    ])
+
+
+# Parse input data
+(root_node, remainder) = parse(data)
+
+# Part 1:
+print("The sum of all metadata entries is %d" % get_metadata_sum(root_node))
+
+# Part 2:
+print("The value of the root node is %d" % get_node_value(root_node))
